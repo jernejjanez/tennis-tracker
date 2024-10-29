@@ -1,13 +1,15 @@
 {
     "name": "tennis-tracker",
-    "private": true,
-    "version": "0.0.0",
+    "version": "1.0.0",
+    "homepage": "https://jernejjanez.github.io/tennis-tracker",
     "type": "module",
     "scripts": {
         "dev": "vite",
         "build": "tsc -b && vite build",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "predeploy": "npm run build",
+        "deploy": "gh-pages -d build"
     },
     "dependencies": {
         "@emotion/react": "^11.13.3",
@@ -28,6 +30,7 @@
         "eslint": "^9.13.0",
         "eslint-plugin-react-hooks": "^5.0.0",
         "eslint-plugin-react-refresh": "^0.4.13",
+        "gh-pages": "^6.2.0",
         "globals": "^15.11.0",
         "prettier": "3.3.3",
         "typescript": "~5.6.2",
