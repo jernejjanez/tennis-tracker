@@ -1,18 +1,20 @@
-import React, { useCallback, useState } from "react";
-import "./App.css";
-import axios from "axios";
-import { ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { LocalizationProvider, MobileDatePicker } from "@mui/x-date-pickers";
-import dayjs, { Dayjs } from "dayjs";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LoadingButton } from "@mui/lab";
+import { Alert, Snackbar, SnackbarCloseReason, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { LocalizationProvider, MobileDatePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import axios from "axios";
+import dayjs, { Dayjs } from "dayjs";
+import React, { useCallback, useState } from "react";
+
+import "./App.css";
 
 const App: React.FC = () => {
     const [date, setDate] = useState<Dayjs | null>(dayjs());
-    const [hours, setHours] = useState("2");
-    const [players, setPlayers] = useState<string[]>(() => ["Jerry", "Žurič", "Vavdi"]);
+    const [hours, setHours] = useState("");
+    const [players, setPlayers] = useState<string[]>(() => []);
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     const handleHours = useCallback((_: React.MouseEvent<HTMLElement>, newHours: string | null) => {
@@ -21,18 +23,18 @@ const App: React.FC = () => {
         }
     }, []);
 
-    const handlePlayers = useCallback((_: React.MouseEvent<HTMLElement>, newPlayers: string[]) => {
-        if (newPlayers.length) {
-            setPlayers(newPlayers);
-        }
-    }, []);
+    const handlePlayers = useCallback(
+        (_: React.MouseEvent<HTMLElement>, newPlayers: string[]) => setPlayers(newPlayers),
+        [],
+    );
 
     const handleSubmit = useCallback(async () => {
         setSuccessMessage("");
         setErrorMessage("");
         setSubmitting(true);
+        setSnackbarOpen(false);
         try {
-            const response = await axios.post(
+            await axios.post(
                 "https://script.google.com/macros/s/AKfycbzVMSuqO7j0ylFXAf_en_32Tw9hmF60RPH1KlQu5LJofBUYyzxWjbVYDLM9_6Mx2gSf/exec",
                 {
                     date: date?.format("DD.MM.YYYY"),
@@ -44,7 +46,8 @@ const App: React.FC = () => {
                 },
                 { headers: { "Content-Type": "text/plain;charset=utf-8" } },
             );
-            setSuccessMessage(response.data);
+            setSuccessMessage("Successfully saved to sheet. Vamos!");
+            setSnackbarOpen(true);
             setSubmitting(false);
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -53,18 +56,26 @@ const App: React.FC = () => {
                 console.log(error);
                 setErrorMessage("Error submitting data. Check console log.");
             }
+            setSnackbarOpen(true);
             setSubmitting(false);
         }
     }, [date, hours, players]);
 
+    const handleSnackbarClose = useCallback((_: React.SyntheticEvent | Event, reason?: SnackbarCloseReason) => {
+        if (reason === "clickaway") {
+            return;
+        }
+        setSnackbarOpen(false);
+    }, []);
+
     return (
         <div className="wrapper">
             <h1>TIVOLI/SVOBODA TRACKER</h1>
-            DATE:
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
+            Date:
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={"sl"}>
                 <MobileDatePicker value={date} onChange={(newValue) => setDate(newValue)} />
             </LocalizationProvider>
-            HOURS:
+            Hours:
             <ToggleButtonGroup exclusive fullWidth onChange={handleHours} value={hours}>
                 <ToggleButton classes={{ selected: "selectedHours" }} value="1">
                     1
@@ -76,7 +87,7 @@ const App: React.FC = () => {
                     3
                 </ToggleButton>
             </ToggleButtonGroup>
-            PLAYERS:
+            Players:
             <ToggleButtonGroup fullWidth onChange={handlePlayers} value={players}>
                 <ToggleButton classes={{ selected: "selectedPlayers" }} value="Jerry">
                     Jerry
@@ -88,11 +99,28 @@ const App: React.FC = () => {
                     Vavdi
                 </ToggleButton>
             </ToggleButtonGroup>
-            <LoadingButton onClick={handleSubmit} loading={submitting} variant="contained">
-                SUBMIT
+            <LoadingButton
+                disabled={players.length === 0 || hours === "" || date == null}
+                loading={submitting}
+                onClick={handleSubmit}
+                variant="contained"
+            >
+                Submit
             </LoadingButton>
-            {successMessage != "" && <div className="successMessage">{successMessage}</div>}
-            {errorMessage != "" && <div className="errorMessage">{errorMessage}</div>}
+            <Snackbar
+                autoHideDuration={6000}
+                onClose={handleSnackbarClose}
+                open={snackbarOpen && (successMessage != "" || errorMessage != "")}
+            >
+                <Alert
+                    onClose={handleSnackbarClose}
+                    severity={successMessage != "" ? "success" : "error"}
+                    sx={{ width: "100%" }}
+                    variant="filled"
+                >
+                    {successMessage != "" ? successMessage : errorMessage}
+                </Alert>
+            </Snackbar>
         </div>
     );
 };
