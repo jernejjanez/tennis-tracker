@@ -4,11 +4,12 @@
     padding: 20px;
     row-gap: 15px;
 
-    .selectedHours {
-        background-color: darkorange !important;
+    .selectedSheet {
+        background-color: green !important;
         color: white !important;
     }
 
+    .selectedHours,
     .selectedPlayers {
         background-color: darkorange !important;
         color: white !important;

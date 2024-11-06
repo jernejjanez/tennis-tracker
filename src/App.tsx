@@ -10,12 +10,19 @@ import "./App.css";
 
 const App: React.FC = () => {
     const [date, setDate] = useState<Dayjs | null>(dayjs());
+    const [sheet, setSheet] = useState("");
     const [hours, setHours] = useState("");
     const [players, setPlayers] = useState<string[]>(() => []);
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+
+    const handleSheets = useCallback((_: React.MouseEvent<HTMLElement>, newSheet: string | null) => {
+        if (newSheet !== null) {
+            setSheet(newSheet);
+        }
+    }, []);
 
     const handleHours = useCallback((_: React.MouseEvent<HTMLElement>, newHours: string | null) => {
         if (newHours !== null) {
@@ -37,6 +44,7 @@ const App: React.FC = () => {
             await axios.post(
                 "https://script.google.com/macros/s/AKfycbzVMSuqO7j0ylFXAf_en_32Tw9hmF60RPH1KlQu5LJofBUYyzxWjbVYDLM9_6Mx2gSf/exec",
                 {
+                    sheet,
                     date: date?.format("DD.MM.YYYY"),
                     hours,
                     player1: players[0] ?? "",
@@ -59,7 +67,7 @@ const App: React.FC = () => {
             setSnackbarOpen(true);
             setSubmitting(false);
         }
-    }, [date, hours, players]);
+    }, [date, hours, players, sheet]);
 
     const handleSnackbarClose = useCallback((_: React.SyntheticEvent | Event, reason?: SnackbarCloseReason) => {
         if (reason === "clickaway") {
@@ -71,6 +79,18 @@ const App: React.FC = () => {
     return (
         <div className="wrapper">
             <h1>TIVOLI/SVOBODA TRACKER</h1>
+            Sheet:
+            <ToggleButtonGroup exclusive fullWidth onChange={handleSheets} value={sheet}>
+                <ToggleButton classes={{ selected: "selectedSheet" }} value="Dnevnik 2025 - Jerry 30">
+                    Jerry's sheet
+                </ToggleButton>
+                <ToggleButton classes={{ selected: "selectedSheet" }} value="Dnevnik 2025 - Žurič 30">
+                    Žurič's sheet
+                </ToggleButton>
+                <ToggleButton classes={{ selected: "selectedSheet" }} value="Dnevnik 2025 - Vavdi 30">
+                    Vavdi's sheet
+                </ToggleButton>
+            </ToggleButtonGroup>
             Date:
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={"sl"}>
                 <MobileDatePicker value={date} onChange={(newValue) => setDate(newValue)} />
@@ -100,7 +120,7 @@ const App: React.FC = () => {
                 </ToggleButton>
             </ToggleButtonGroup>
             <LoadingButton
-                disabled={players.length === 0 || hours === "" || date == null}
+                disabled={players.length === 0 || sheet === "" || hours === "" || date == null}
                 loading={submitting}
                 onClick={handleSubmit}
                 variant="contained"
