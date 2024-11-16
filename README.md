@@ -1,10 +1,12 @@
-# Tennis Lesson Tracker
+# Tivoli/Svoboda Tennis Tracker
 
-A simple web app to track tennis lessons, including lesson hours, date, and participants. This app connects with Google Sheets, where all lesson data is stored automatically.
+A simple web app to track tennis hours, date, and participants. This app connects with Google Sheets, where all lesson data is stored automatically.
+
+https://jernejjanez.github.io/tennis-tracker/
 
 ## Features
 
-- **Lesson Tracking**: Record the date, hours, participants, and any additional notes for each tennis lesson.
+- **Tracking**: Record the date, hours and participants.
 - **Google Sheets Integration**: Saves data directly to Google Sheets for easy access and review.
 - **GitHub Pages Deployment**: Hosted on GitHub Pages for easy access and sharing.
 
