@@ -17,6 +17,9 @@ const App: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [iframeKey, setIframeKey] = useState(0);
+
+    const reloadIframe = useCallback(() => setIframeKey((k) => k + 1), []);
 
     const handleSheets = useCallback((_: React.MouseEvent<HTMLElement>, newSheet: string | null) => {
         if (newSheet !== null) {
@@ -57,6 +60,7 @@ const App: React.FC = () => {
             setSuccessMessage("Successfully saved to sheet. Vamos!");
             setSnackbarOpen(true);
             setSubmitting(false);
+            reloadIframe();
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 setErrorMessage(error.message);
@@ -67,7 +71,7 @@ const App: React.FC = () => {
             setSnackbarOpen(true);
             setSubmitting(false);
         }
-    }, [date, hours, players, sheet]);
+    }, [date, hours, players, reloadIframe, sheet]);
 
     const handleSnackbarClose = useCallback((_: React.SyntheticEvent | Event, reason?: SnackbarCloseReason) => {
         if (reason === "clickaway") {
@@ -127,6 +131,27 @@ const App: React.FC = () => {
             >
                 Submit
             </LoadingButton>
+            {sheet === "Dnevnik 2025 - Jerry 30" && (
+                <iframe
+                    key={iframeKey}
+                    style={{ height: 500 }}
+                    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQRJ03tnOni_k69NUa3bKab0hKEeW2Jrxq569yImaV9FyDckadlxkzWJVQstvkYCB5TlfZBuN_OYwb9/pubhtml?gid=702523749&amp;single=true&amp;widget=true&amp;headers=false"
+                ></iframe>
+            )}
+            {sheet === "Dnevnik 2025 - Žurič 30" && (
+                <iframe
+                    key={iframeKey}
+                    style={{ height: 500 }}
+                    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQRJ03tnOni_k69NUa3bKab0hKEeW2Jrxq569yImaV9FyDckadlxkzWJVQstvkYCB5TlfZBuN_OYwb9/pubhtml?gid=1206913435&amp;single=true&amp;widget=true&amp;headers=false"
+                ></iframe>
+            )}
+            {sheet === "Dnevnik 2025 - Vavdi 30" && (
+                <iframe
+                    key={iframeKey}
+                    style={{ height: 500 }}
+                    src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQRJ03tnOni_k69NUa3bKab0hKEeW2Jrxq569yImaV9FyDckadlxkzWJVQstvkYCB5TlfZBuN_OYwb9/pubhtml?gid=2089938286&amp;single=true&amp;widget=true&amp;headers=false"
+                ></iframe>
+            )}
             <Snackbar
                 autoHideDuration={6000}
                 onClose={handleSnackbarClose}
