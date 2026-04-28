@@ -1,4 +1,4 @@
-# Tivoli/Svoboda Tennis Tracker
+# Tennis Tracker
 
 A simple web app to track tennis hours, date, and participants. This app connects with Google Sheets, where all lesson data is stored automatically.
 

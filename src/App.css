@@ -4,11 +4,27 @@
     padding: 20px;
     row-gap: 15px;
 
-    .selectedSheet {
+    .selectedSheet,
+    .selectedLocation {
         background-color: green !important;
         color: white !important;
     }
 
+    .dateRow {
+        align-items: center;
+        column-gap: 16px;
+        display: flex;
+    }
+
+    .datePicker {
+        flex: 0 0 50%;
+    }
+
+    .timeOfDayToggle {
+        flex: 1;
+    }
+
+    .selectedTimeOfDay,
     .selectedHours,
     .selectedPlayers {
         background-color: darkorange !important;
