@@ -1,19 +1,34 @@
-import { Alert, Button, Snackbar, SnackbarCloseReason, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import {
+    Alert,
+    AlertColor,
+    Button,
+    IconButton,
+    Snackbar,
+    SnackbarCloseReason,
+    SvgIcon,
+    ToggleButton,
+    ToggleButtonGroup,
+} from "@mui/material";
 import { LocalizationProvider, MobileDatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import React, { useCallback, useState } from "react";
 
 import "./App.css";
-
-const SHEETS_API_URL =
-    "https://script.google.com/macros/s/AKfycbzVMSuqO7j0ylFXAf_en_32Tw9hmF60RPH1KlQu5LJofBUYyzxWjbVYDLM9_6Mx2gSf/exec";
+import { SavedEntry, saveEntry, undoEntry } from "./sheetsApi";
 
 const SHEET_IDS = {
     jerry: "702523749",
     zuric: "1206913435",
     vavdi: "2089938286",
 } as const;
+
+const LOCATIONS = ["Tivoli", "Svoboda", "Svoboda balon", "Savc", "Padel Tivoli"];
+
+interface Notice {
+    severity: AlertColor;
+    text: string;
+}
 
 const App: React.FC = () => {
     const [date, setDate] = useState<Dayjs | null>(dayjs());
@@ -22,13 +37,19 @@ const App: React.FC = () => {
     const [hours, setHours] = useState("");
     const [players, setPlayers] = useState<string[]>(() => []);
     const [after16, setAfter16] = useState<boolean | null>(null);
-    const [successMessage, setSuccessMessage] = useState("");
-    const [errorMessage, setErrorMessage] = useState("");
+    const [notice, setNotice] = useState<Notice>({ severity: "success", text: "" });
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [lastSaved, setLastSaved] = useState<SavedEntry | null>(null);
+    const [undoing, setUndoing] = useState(false);
     const [iframeKey, setIframeKey] = useState(0);
 
     const reloadIframe = useCallback(() => setIframeKey((k) => k + 1), []);
+
+    const showNotice = useCallback((severity: AlertColor, text: string) => {
+        setNotice({ severity, text });
+        setSnackbarOpen(true);
+    }, []);
 
     const handleSheets = useCallback((_: React.MouseEvent<HTMLElement>, newSheetId: string | null) => {
         if (newSheetId !== null) {
@@ -39,12 +60,6 @@ const App: React.FC = () => {
     const handleHours = useCallback((_: React.MouseEvent<HTMLElement>, newHours: string | null) => {
         if (newHours !== null) {
             setHours(newHours);
-        }
-    }, []);
-
-    const handleLocation = useCallback((_: React.MouseEvent<HTMLElement>, newLocation: string | null) => {
-        if (newLocation !== null) {
-            setLocation(newLocation);
         }
     }, []);
 
@@ -60,40 +75,51 @@ const App: React.FC = () => {
     );
 
     const handleSubmit = useCallback(async () => {
-        setSuccessMessage("");
-        setErrorMessage("");
         setSubmitting(true);
         setSnackbarOpen(false);
-        try {
-            await fetch(SHEETS_API_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8",
-                },
-                body: JSON.stringify({
-                    sheetId,
-                    date: date?.format("DD.MM.YYYY"),
-                    location,
-                    hours,
-                    after16,
-                    player1: players[0] ?? "",
-                    player2: players[1] ?? "",
-                    player3: players[2] ?? "",
-                    player4: players[3] ?? "",
-                }),
-            });
-            setSuccessMessage("Successfully saved to sheet. Vamos!");
-            setSnackbarOpen(true);
-            setSubmitting(false);
+        setLastSaved(null);
+        const result = await saveEntry({
+            sheetId,
+            date: date?.format("DD.MM.YYYY") ?? "",
+            location,
+            hours,
+            after16: after16 === true,
+            players,
+        });
+        setSubmitting(false);
+        if (result.status === "saved") {
+            setLastSaved(result.saved ?? null);
+            showNotice(
+                "success",
+                result.saved
+                    ? `Saved to row ${result.saved.row}. Vamos!`
+                    : "Saved. Vamos! (Undo needs the updated Google script.)",
+            );
             reloadIframe();
-        } catch (error) {
-            console.log(error);
-            setErrorMessage("Error submitting data. Check console log.");
-            setSnackbarOpen(true);
-            setSubmitting(false);
+        } else if (result.status === "rejected") {
+            showNotice("error", `Not saved: ${result.error}`);
+        } else {
+            showNotice("warning", "Couldn't confirm the save. Check the sheet before submitting again.");
         }
-    }, [after16, date, hours, location, players, reloadIframe, sheetId]);
+    }, [after16, date, hours, location, players, reloadIframe, sheetId, showNotice]);
+
+    const handleUndo = useCallback(async () => {
+        if (lastSaved === null) {
+            return;
+        }
+        setUndoing(true);
+        const result = await undoEntry(lastSaved);
+        setUndoing(false);
+        setLastSaved(null);
+        if (result.status === "removed") {
+            showNotice("info", "Entry removed. Fix the options and submit again.");
+            reloadIframe();
+        } else if (result.status === "rejected") {
+            showNotice("error", `Not removed: ${result.error}`);
+        } else {
+            showNotice("warning", "Couldn't confirm the undo. Check the sheet.");
+        }
+    }, [lastSaved, reloadIframe, showNotice]);
 
     const handleSnackbarClose = useCallback((_: React.SyntheticEvent | Event, reason?: SnackbarCloseReason) => {
         if (reason === "clickaway") {
@@ -118,20 +144,19 @@ const App: React.FC = () => {
                 </ToggleButton>
             </ToggleButtonGroup>
             Location:
-            <ToggleButtonGroup exclusive fullWidth onChange={handleLocation} value={location}>
-                <ToggleButton classes={{ selected: "selectedLocation" }} value="Tivoli">
-                    Tivoli
-                </ToggleButton>
-                <ToggleButton classes={{ selected: "selectedLocation" }} value="Svoboda">
-                    Svoboda
-                </ToggleButton>
-                <ToggleButton classes={{ selected: "selectedLocation" }} value="Savc">
-                    Savc
-                </ToggleButton>
-                <ToggleButton classes={{ selected: "selectedLocation" }} value="Padel Tivoli">
-                    Padel Tivoli
-                </ToggleButton>
-            </ToggleButtonGroup>
+            <div className="locationGrid">
+                {LOCATIONS.map((name) => (
+                    <ToggleButton
+                        classes={{ selected: "selectedLocation" }}
+                        key={name}
+                        onChange={() => setLocation(name)}
+                        selected={location === name}
+                        value={name}
+                    >
+                        {name}
+                    </ToggleButton>
+                ))}
+            </div>
             Date:
             <div className="dateRow">
                 <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={"sl"}>
@@ -189,7 +214,8 @@ const App: React.FC = () => {
                     location === "" ||
                     hours === "" ||
                     after16 === null ||
-                    date == null
+                    date == null ||
+                    undoing
                 }
                 loading={submitting}
                 onClick={handleSubmit}
@@ -219,17 +245,37 @@ const App: React.FC = () => {
                 ></iframe>
             )}
             <Snackbar
-                autoHideDuration={6000}
+                autoHideDuration={lastSaved === null ? 6000 : null}
                 onClose={handleSnackbarClose}
-                open={snackbarOpen && (successMessage != "" || errorMessage != "")}
+                open={snackbarOpen}
             >
                 <Alert
+                    action={
+                        // Without an action, Alert shows its own close button.
+                        lastSaved === null ? undefined : (
+                            <>
+                                <Button color="inherit" loading={undoing} onClick={handleUndo} size="small">
+                                    Undo
+                                </Button>
+                                <IconButton
+                                    aria-label="Close"
+                                    color="inherit"
+                                    onClick={handleSnackbarClose}
+                                    size="small"
+                                >
+                                    <SvgIcon fontSize="small">
+                                        <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                                    </SvgIcon>
+                                </IconButton>
+                            </>
+                        )
+                    }
                     onClose={handleSnackbarClose}
-                    severity={successMessage != "" ? "success" : "error"}
+                    severity={notice.severity}
                     sx={{ width: "100%" }}
                     variant="filled"
                 >
-                    {successMessage != "" ? successMessage : errorMessage}
+                    {notice.text}
                 </Alert>
             </Snackbar>
         </div>

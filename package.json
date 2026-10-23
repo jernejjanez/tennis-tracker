@@ -7,11 +7,14 @@
         "dev": "vite",
         "build": "tsc -b && vite build",
         "lint": "eslint .",
+        "test": "vitest run",
         "preview": "vite preview",
         "predeploy": "npm run build",
         "deploy": "gh-pages -d dist"
     },
     "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
         "@mui/material": "^9.0.0",
         "@mui/x-date-pickers": "^9.0.4",
         "dayjs": "^1.11.20",
@@ -32,6 +35,7 @@
         "prettier": "^3.8.3",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.59.1",
-        "vite": "^8.0.10"
+        "vite": "^8.0.10",
+        "vitest": "^5.0.3"
     }
 }

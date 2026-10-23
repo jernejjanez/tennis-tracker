@@ -10,6 +10,12 @@
         color: white !important;
     }
 
+    .locationGrid {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
     .dateRow {
         align-items: center;
         column-gap: 16px;
